@@ -1,40 +1,54 @@
 #!/bin/bash
 
-# Exit on error
+# Exit on any error
 set -e
 
-echo "🔧 Starting build for doctordashboard..."
+REPO_URL="https://github.com/<your-org-or-username>/doctordashboard.git"
+PROJECT_NAME="doctordashboard"
+BRANCH="master"
 
-# Clean previous builds (optional)
-echo "🧹 Cleaning previous builds..."
-rm -rf dist build out
+echo "🔧 Starting build and deployment for $PROJECT_NAME..."
 
-# Clone the repo if not already present (optional)
-if [ ! -d "doctordashboard" ]; then
-  echo "📥 Cloning repository..."
-  git clone -b master https://github.com/<your-org-or-username>/doctordashboard.git
+# Clone the repo if it doesn't exist
+if [ ! -d "$PROJECT_NAME" ]; then
+  echo "📥 Cloning $PROJECT_NAME..."
+  git clone -b "$BRANCH" "$REPO_URL"
 fi
 
-cd doctordashboard
+cd "$PROJECT_NAME"
 
-# Pull latest code
-echo "📦 Pulling latest code from master..."
-git checkout master
-git pull origin master
+# Pull latest changes
+echo "📦 Pulling latest code from $BRANCH..."
+git checkout "$BRANCH"
+git pull origin "$BRANCH"
 
-# Example: Node.js build
+# Build section
 if [ -f "package.json" ]; then
-  echo "📦 Installing dependencies..."
+  echo "📦 Detected Node.js project..."
   npm install
-
-  echo "🛠️ Building project..."
   npm run build
-fi
-
-# Example: Java/Maven build
-if [ -f "pom.xml" ]; then
-  echo "☕ Building Maven project..."
+elif [ -f "pom.xml" ]; then
+  echo "☕ Detected Maven project..."
   mvn clean package
+elif [ -f "requirements.txt" ]; then
+  echo "🐍 Detected Python project..."
+  pip install -r requirements.txt
 fi
 
-echo "✅ Build completed!"
+# Deploy section
+echo "🚀 Deploying..."
+
+if [ -f "package.json" ]; then
+  echo "📦 Starting Node.js app..."
+  npm run start &
+elif ls target/*.jar 1> /dev/null 2>&1; then
+  echo "☕ Running JAR..."
+  java -jar target/*.jar &
+elif [ -f "app.py" ]; then
+  echo "🐍 Starting Python app..."
+  python app.py &
+else
+  echo "⚠️ No known start command found!"
+fi
+
+echo "✅ Build and deployment completed!"
